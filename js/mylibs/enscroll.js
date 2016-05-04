@@ -774,7 +774,7 @@
 					settings, paneHeight, paneWidth,
 					trackWrapper, pct, track, trackWidth, trackHeight,
 					$scrollUpBtn, $scrollDownBtn, $scrollLeftBtn, $scrollRightBtn,
-					handle, handleWidth, handleHeight, prybar;
+					handle, handleWidth, handleHeight, prybar, oldDisplay;
 
 				if ( !data ) {
 					return true;
@@ -785,6 +785,7 @@
 				if ( $this.is( ':visible' )) {
 					if ( settings.verticalScrolling ) {
 						trackWrapper = data.verticalTrackWrapper;
+						oldDisplay = trackWrapper.style.display;
 						paneHeight = $this.innerHeight();
 						pct = paneHeight / this.scrollHeight;
 						track = $( trackWrapper ).find( '.enscroll-track' )[0];
@@ -812,10 +813,14 @@
 							handle.style.top = ( pct * ( trackHeight - handleHeight ) ) + 'px';
 							trackWrapper.style.display = 'block';
 						}
+						if (trackWrapper.style.display !== oldDisplay) {
+							$(trackWrapper).trigger('displayChanged', [{ newDisplay: trackWrapper.style.display, oldDisplay: oldDisplay }]);
+						}
 					}
 
 					if ( settings.horizontalScrolling ) {
 						trackWrapper = data.horizontalTrackWrapper;
+						oldDisplay = trackWrapper.style.display;
 						paneWidth = $this.innerWidth();
 						pct = paneWidth / this.scrollWidth;
 						track = $( trackWrapper ).find( '.enscroll-track' )[0];
@@ -840,6 +845,9 @@
 							pct = $this.scrollLeft() / ( this.scrollWidth - $this.width() );
 							handle.style.left = ( pct * ( trackWidth - handleWidth ) ) + 'px';
 							trackWrapper.style.display = 'block';
+						}
+						if (trackWrapper.style.display !== oldDisplay) {
+							$(trackWrapper).trigger('displayChanged', [{ newDisplay: trackWrapper.style.display, oldDisplay: oldDisplay }]);
 						}
 
 						if ( data._prybar ) {
