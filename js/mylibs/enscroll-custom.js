@@ -5,6 +5,9 @@
  * Copyright (C) 2012 Jason T. Stoudt
  * Released under the MIT license
  * http://enscrollplugin.com/license.html
+ *
+ * Customized changes:
+ * 2016-05-04: Add event when display property of scrollbar has changed
  **/
 
 ;(function( $, win, doc, undefined ) {
@@ -22,6 +25,8 @@
 		clickTrackToScroll: true,
 		easingDuration: 500,
 		propagateWheelEvent: true,
+		verticalScrollClass: 'vertical-scroll',
+		horizontalScrollClass: 'horizontal-scroll',
 		verticalTrackClass: 'vertical-track',
 		horizontalTrackClass: 'horizontal-track',
 		horizontalHandleClass: 'horizontal-handle',
@@ -34,7 +39,8 @@
 		zIndex: 1,
 		addPaddingToPane: true,
 		horizontalHandleHTML: '<div class="left"></div><div class="right"></div>',
-		verticalHandleHTML: '<div class="top"></div><div class="bottom"></div>'
+		verticalHandleHTML: '<div class="top"></div><div class="bottom"></div>',
+		offsetTop: null
 	},
 
 	preventDefault = function( event ) {
@@ -247,6 +253,8 @@
 					paneScrolled.call( this, event );
 				});
 
+				$(data.verticalTrackWrapper).trigger('verticalScrollingEnded');
+
 				return false;
 			};
 
@@ -280,6 +288,8 @@
 			bodyCursor = $( doc.body ).css( 'cursor' );
 			this.style.cursor = doc.body.style.cursor = 'ns-resize';
 		}
+
+		$(data.verticalTrackWrapper).trigger('verticalScrollingStarted');
 
 		reqAnimFrame( moveHandle );
 
@@ -353,6 +363,8 @@
 					paneScrolled.call( this, event );
 				});
 
+				$(data.horizontalTrackWrapper).trigger('horizontalScrollingEnded');
+
 				return false;
 			};
 
@@ -384,6 +396,8 @@
 			bodyCursor = $( 'body' ).css( 'cursor' );
 			this.style.cursor = doc.body.style.cursor = 'ew-resize';
 		}
+
+		$(data.horizontalTrackWrapper).trigger('horizontalScrollingStarted');
 
 		reqAnimFrame( moveHandle );
 
@@ -488,7 +502,6 @@
 		var data = $pane.data( 'enscroll' ),
 			curPos = $pane.scrollTop(),
 			scrollMax = $pane[0].scrollHeight - (data._scrollHeightNoPadding ? $pane.height() : $pane.innerHeight());
-
 		if ( !data.settings.verticalScrolling || data._scrollingX ) {
 			return false;
 		}
@@ -746,22 +759,22 @@
 					corner = data.corner;
 					if ( data.settings.verticalScrolling ) {
 						trackWrapper = data.verticalTrackWrapper;
-						positionElem( trackWrapper,
-                            ( data.settings.verticalScrollerSide === 'right' ? offset.left + $this.outerWidth() - $( trackWrapper ).width() - getComputedValue( this, 'border-right-width' ) : offset.left + getComputedValue( this, 'border-left-width' )),
-							offset.top + getComputedValue( this, 'border-top-width' ));
+						positionElem(trackWrapper,
+							(data.settings.verticalScrollerSide === 'right' ? offset.left + $this.outerWidth() - $(trackWrapper).width() - getComputedValue(this, 'border-right-width') : offset.left + getComputedValue(this, 'border-left-width')),
+							offset.top + getComputedValue(this, 'border-top-width') + data.settings.offsetTop);
 					}
 
 					if ( data.settings.horizontalScrolling ) {
 						trackWrapper = data.horizontalTrackWrapper;
 						positionElem( trackWrapper,
-							offset.left + getComputedValue( this, 'border-left-width' ),
-							offset.top + $this.outerHeight() - $( trackWrapper ).height() - getComputedValue( this, 'border-bottom-width' ));
+							offset.left + getComputedValue(this, 'border-left-width'),
+							offset.top + $this.outerHeight() - getComputedValue(this, 'border-bottom-width'));
 					}
 
 					if ( corner ) {
 						positionElem( corner,
 							offset.left + $this.outerWidth() - $( corner ).outerWidth() - getComputedValue( this, 'border-right-width' ),
-							offset.top + $this.outerHeight() - $( corner ).outerHeight() - getComputedValue( this, 'border-bottom-width' ));
+							offset.top + $this.outerHeight() - getComputedValue( this, 'border-bottom-width' ));
 					}
 				}
 			});
@@ -774,7 +787,7 @@
 					settings, paneHeight, paneWidth,
 					trackWrapper, pct, track, trackWidth, trackHeight,
 					$scrollUpBtn, $scrollDownBtn, $scrollLeftBtn, $scrollRightBtn,
-					handle, handleWidth, handleHeight, prybar, oldDisplay;
+					handle, handleWidth, handleHeight, prybar, $corner, oldDisplay;
 
 				if ( !data ) {
 					return true;
@@ -788,14 +801,13 @@
 						oldDisplay = trackWrapper.style.display;
 						paneHeight = $this.innerHeight();
 						pct = paneHeight / this.scrollHeight;
-						track = $( trackWrapper ).find( '.enscroll-track' )[0];
+						track = $( trackWrapper ).find('.enscroll-track')[0];
+						$corner = $( trackWrapper ).parent().find('.' + settings.cornerClass);
 						$scrollUpBtn = $( trackWrapper ).find( '.' + settings.scrollUpButtonClass );
 						$scrollDownBtn = $(trackWrapper).find( '.' + settings.scrollDownButtonClass );
 
-						trackHeight = settings.horizontalScrolling ?
-							paneHeight - $( data.horizontalTrackWrapper ).find( '.enscroll-track' ).outerHeight() :
-							paneHeight;
-						trackHeight -= $( track ).outerHeight() - $( track ).height() + $scrollUpBtn.outerHeight() + $scrollDownBtn.outerHeight();
+						trackHeight = settings.horizontalScrolling ? paneHeight - $(data.horizontalTrackWrapper).find('.enscroll-track').outerHeight() : paneHeight;
+						trackHeight = $this.outerHeight() - ($scrollUpBtn.outerHeight() + $scrollDownBtn.outerHeight() + data.settings.offsetTop);
 
 						handle = track.firstChild;
 						handleHeight = Math.max( pct * trackHeight,
@@ -830,7 +842,8 @@
 						trackWidth = settings.verticalScrolling ?
 							paneWidth - $( data.verticalTrackWrapper ).find( '.enscroll-track' ).outerWidth() :
 							paneWidth;
-						trackWidth -= $( track ).outerWidth() - $( track ).width() + $scrollLeftBtn.outerWidth() + $scrollRightBtn.outerWidth();
+						trackWidth -= ($(track).outerWidth() - $(track).width()) + ($scrollLeftBtn.outerWidth() + $scrollRightBtn.outerWidth());
+						$(trackWrapper).css('width', trackWidth + +($scrollLeftBtn.outerWidth() + $scrollRightBtn.outerWidth()));
 
 						handle = track.firstChild;
 						handleWidth = Math.max( pct * trackWidth,
@@ -854,7 +867,7 @@
 							prybar = data._prybar;
 							this.removeChild( prybar );
 							if ( settings.verticalScrolling ) {
-								prybar.style.width = ( this.scrollWidth + $( data.verticalTrackWrapper ).find( '.enscroll-track' ).outerWidth()) + 'px';
+							    prybar.style.width = (this.scrollWidth) + $(data.verticalTrackWrapper).find('.enscroll-track').outerWidth() - $(trackWrapper).outerWidth() + 'px';
 								this.appendChild( prybar );
 							}
 						}
@@ -918,7 +931,7 @@
 								api.reposition.call( $pane );
 							}
 
-							setTimeout( paneChangeListener, 350 );
+							setTimeout( paneChangeListener, 0);
 						}
 					};
 
@@ -1028,24 +1041,28 @@
 				return;
 			}
 
-			var $this = $( this ),
+			var $this = $(this),
 				pane = this,
-				oldStyle = $this.attr( 'style' ),
+				oldStyle = $this.attr('style'),
 				hadTabIndex = true,
-				horizontalTrackWrapper, verticalTrackWrapper,
-				horizontalTrack, verticalTrack,
-				horizontalHandle, verticalHandle,
-				verticalUpButton, verticalDownButton,
-				horizontalLeftButton, horizontalRightButton,
-				trackHeight, trackWidth,
-				corner, outline, tabindex,
-				outlineWidth, prybar, paddingSide,
-				trackWrapperCSS = {
-					'position': 'absolute',
-					'z-index': settings.zIndex,
-					'margin': 0,
-					'padding': 0
-				},
+				horizontalTrackWrapper,
+				verticalTrackWrapper,
+				horizontalTrack,
+				verticalTrack,
+				horizontalHandle,
+				verticalHandle,
+				verticalUpButton,
+				verticalDownButton,
+				horizontalLeftButton,
+				horizontalRightButton,
+				trackHeight,
+				trackWidth,
+				corner,
+				outline,
+				tabindex,
+				outlineWidth,
+				prybar,
+				paddingSide,
 
 				// closures to bind events to handlers
 				mouseScrollHandler = function( event ) {
@@ -1064,7 +1081,9 @@
 			if ( settings.verticalScrolling ) {
 				verticalTrackWrapper = doc.createElement( 'div' );
 				verticalTrack = doc.createElement( 'div' );
-				verticalHandle = doc.createElement( 'a' );
+				verticalHandle = doc.createElement('a');
+
+			    	$(verticalTrackWrapper).addClass(settings.verticalScrollClass);
 
 				$( verticalTrack )
 					.css( 'position', 'relative' )
@@ -1129,7 +1148,6 @@
 				addHandleHTML( verticalHandle, settings.verticalHandleHTML );
 
 				$( verticalTrackWrapper )
-					.css( trackWrapperCSS )
 					.insertAfter( this );
 
 				if ( settings.showOnHover ) {
@@ -1183,11 +1201,9 @@
 				horizontalTrack = doc.createElement( 'div' );
 				horizontalHandle = doc.createElement( 'a' );
 
+			    $(horizontalTrackWrapper).addClass(settings.horizontalScrollClass);
+
 				$( horizontalTrack )
-					.css({
-						'position': 'relative',
-						'z-index': 1
-					})
 					.addClass( 'enscroll-track' )
 					.addClass( settings.horizontalTrackClass )
 					.appendTo( horizontalTrackWrapper );
@@ -1197,7 +1213,6 @@
 					horizontalRightButton = doc.createElement( 'a' );
 
 					$( horizontalLeftButton )
-						.css( 'display', 'block' )
 						.attr( 'href', '' )
 						.on( 'click', function() {
 							scrollHorizontal( pane, -settings.scrollIncrement );
@@ -1206,8 +1221,7 @@
 						.addClass( settings.scrollLeftButtonClass )
 						.insertBefore( horizontalTrack );
 
-					$( horizontalRightButton )
-						.css( 'display', 'block' )
+				    $(horizontalRightButton)
 						.attr( 'href', '' )
 						.on( 'click', function() {
 							scrollHorizontal( pane, settings.scrollIncrement );
@@ -1228,10 +1242,6 @@
 				}
 
 				$( horizontalHandle )
-					.css({
-						'position': 'absolute',
-						'z-index': 1
-					})
 					.attr( 'href', '' )
 					.addClass( settings.horizontalHandleClass )
 					.click( function() { return false; })
@@ -1241,7 +1251,6 @@
 				addHandleHTML( horizontalHandle, settings.horizontalHandleHTML );
 
 				$( horizontalTrackWrapper )
-					.css( trackWrapperCSS )
 					.insertAfter( this );
 
 				if ( settings.showOnHover ) {
@@ -1285,7 +1294,6 @@
 				corner = doc.createElement( 'div' );
 				$( corner )
 					.addClass( settings.cornerClass )
-					.css( trackWrapperCSS )
 					.insertAfter( this );
 			}
 
@@ -1341,7 +1349,7 @@
 				});
 
 			// reposition the scrollbars if the window is resized
-			$( win ).on( 'resize.enscroll.window', function() {
+			$(win).on('resize.enscroll.window', function () {
 				api.reposition.call( $this );
 			});
 
