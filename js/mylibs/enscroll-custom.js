@@ -8,6 +8,7 @@
  *
  * Customized changes:
  * 2016-05-04: Add event when display property of scrollbar has changed
+ * 2016-06-10: Reverted paneChangeListener timeout from 0ms back to 350ms.
  **/
 
 ;(function( $, win, doc, undefined ) {
@@ -522,7 +523,6 @@
 	},
 
 	mouseScroll = function (event) {
-	    $(this).trigger('mouseWheel');
 		var $pane = $( this ),
 			data = $pane.data( 'enscroll' ),
 			scrollIncrement = data.settings.scrollIncrement,
@@ -543,6 +543,7 @@
 		} else if ( deltaY !== 0 ) {
 			delta = ( deltaY > 0 ? -scrollIncrement : scrollIncrement ) << 2;
 			if ( scrollAnimateVertical( $pane, delta ) || !data.settings.propagateWheelEvent ) {
+			    $(this).trigger('mouseWheel');
 				preventDefault( event );
 			}
 		}
@@ -575,7 +576,13 @@
 	},
 
 	keyHandler = function (event) {
-	    $(this).trigger('keyScroll');
+	    var verticalTrackWrapper = $(this).data('enscroll').verticalTrackWrapper;
+	    var verticalScrollbarVisible = $(verticalTrackWrapper).is(':visible');
+
+	    if (verticalScrollbarVisible) {
+		    $(this).trigger('keyScroll');
+	    }
+
 		var $this = $( this ),
 			data = $this.data( 'enscroll' ),
 			scrollIncrement;
@@ -822,10 +829,13 @@
 						trackWrapper.style.display = 'none';
 						track.style.height = trackHeight + 'px';
 						handle.style.height = handleHeight + 'px';
-						if ( pct < 1 ) {
-							pct = $this.scrollTop() / ( this.scrollHeight - $this.height() );
-							handle.style.top = ( pct * ( trackHeight - handleHeight ) ) + 'px';
-							trackWrapper.style.display = 'block';
+						if (pct < 1) {
+						    pct = $this.scrollTop() / (this.scrollHeight - $this.height());
+						    handle.style.top = (pct * (trackHeight - handleHeight)) + 'px';
+						    trackWrapper.style.display = 'block';
+						    $(trackWrapper).addClass('pt-visible');
+						} else {
+						    $(trackWrapper).removeClass('pt-visible');
 						}
 						if (trackWrapper.style.display !== oldDisplay) {
 							$(trackWrapper).trigger('displayChanged', [{ newDisplay: trackWrapper.style.display, oldDisplay: oldDisplay }]);
@@ -856,10 +866,13 @@
 						trackWrapper.style.display = 'none';
 						track.style.width = trackWidth + 'px';
 						handle.style.width = handleWidth + 'px';
-						if ( pct < 1 ) {
-							pct = $this.scrollLeft() / ( this.scrollWidth - $this.width() );
-							handle.style.left = ( pct * ( trackWidth - handleWidth ) ) + 'px';
-							trackWrapper.style.display = 'block';
+						if (pct < 1) {
+						    pct = $this.scrollLeft() / (this.scrollWidth - $this.width());
+						    handle.style.left = (pct * (trackWidth - handleWidth)) + 'px';
+						    trackWrapper.style.display = 'block';
+						    $(trackWrapper).addClass('pt-visible');
+						} else {
+						    $(trackWrapper).removeClass('pt-visible');
 						}
 						if (trackWrapper.style.display !== oldDisplay) {
 							$(trackWrapper).trigger('displayChanged', [{ newDisplay: trackWrapper.style.display, oldDisplay: oldDisplay }]);
@@ -933,7 +946,7 @@
 								api.reposition.call( $pane );
 							}
 
-							setTimeout( paneChangeListener, 0);
+							setTimeout( paneChangeListener, 350);
 						}
 					};
 
