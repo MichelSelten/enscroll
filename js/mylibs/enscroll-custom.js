@@ -9,6 +9,7 @@
  * Customized changes:
  * 2016-05-04: Add event when display property of scrollbar has changed
  * 2016-06-10: Reverted paneChangeListener timeout from 0ms back to 350ms.
+ * 2016-06-14: Updated the calculations for vertical orientation.
  **/
 
 ;(function( $, win, doc, undefined ) {
@@ -808,15 +809,17 @@
 					if ( settings.verticalScrolling ) {
 						trackWrapper = data.verticalTrackWrapper;
 						oldDisplay = trackWrapper.style.display;
-						paneHeight = $this.innerHeight();
+
+                        // Take margins and border into account when calculation the total height available for the scrollbar.
+						paneHeight = $this.outerHeight(true) - ($this.outerHeight() - $this.innerHeight());
+
 						pct = paneHeight / this.scrollHeight;
 						track = $( trackWrapper ).find('.enscroll-track')[0];
 						$corner = $( trackWrapper ).parent().find('.' + settings.cornerClass);
 						$scrollUpBtn = $( trackWrapper ).find( '.' + settings.scrollUpButtonClass );
 						$scrollDownBtn = $(trackWrapper).find( '.' + settings.scrollDownButtonClass );
 
-						trackHeight = settings.horizontalScrolling ? paneHeight - $(data.horizontalTrackWrapper).find('.enscroll-track').outerHeight() : paneHeight;
-						trackHeight = $this.outerHeight() - ($scrollUpBtn.outerHeight() + $scrollDownBtn.outerHeight() + data.settings.offsetTop);
+						trackHeight = paneHeight - $scrollUpBtn.outerHeight(true) - $scrollDownBtn.outerHeight(true) - data.settings.offsetTop;
 
 						handle = track.firstChild;
 						handleHeight = Math.max( pct * trackHeight,

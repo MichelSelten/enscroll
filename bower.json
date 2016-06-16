@@ -1,6 +1,6 @@
 {
     "name": "enscroll-custom",
-    "version": "0.6.5",
+    "version": "0.6.6",
     "main": ["js/mylibs/enscroll-custom.js", "js/mylibs/enscroll-custom.min.js"],
     "ignore": ["**/*.md", "**/*.png", "**/*.jpg", "**/*.gif", "releases/*", "README", "**/*.html", "**/*.ico", "**/*.txt", "**/*.handlebars"],
     "dependencies": {"jquery": ">1.7.1"}
